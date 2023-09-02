@@ -1,7 +1,7 @@
 library(tidyverse)
 library(tidyr)
 
-data <- read.table(file = 'quiz_omni.txt', header = T, sep = "\t", fileEncoding = "UTF-8")
+data <- read.table(file = 'https://raw.githubusercontent.com/DapperDataAnalyst/Causal_Inference/main/quiz_omni.txt', header = T, sep = "\t", fileEncoding = "UTF-8")
 
 # Question 6:
 true_SATE <- mean(data$Y1 - data$Y0)
@@ -17,7 +17,7 @@ ggplot(data_long, aes(x = X, y = Value, color = Outcome)) +
        x = "X",
        y = "Value") +
   scale_color_manual(values = c("Y0" = "blue", "Y1" = "red"))
-# 
+### EXAMPLE ONLY, DO NOT USE ###
 # # Set seed for reproducibility (and to get the right answer!):
 # 
 # RNGkind(sample.kind="Rounding")
@@ -58,7 +58,7 @@ ggplot(data_long, aes(x = X, y = Value, color = Outcome)) +
 # 
 # quiz_obs <- data.frame(X, Z, Yobs)
 
-quiz_obs <- read.table(file = 'quiz_obs.txt', header = T, sep = "\t", fileEncoding = "UTF-8")
+quiz_obs <- read.table(file = 'https://raw.githubusercontent.com/DapperDataAnalyst/Causal_Inference/main/quiz_obs.txt', header = T, sep = "\t", fileEncoding = "UTF-8")
 
 est_SATE <- mean(quiz_obs$Yobs[which(quiz_obs$Z == 1)]) - mean(quiz_obs$Yobs[which(quiz_obs$Z == 0)])
 est_SATE
