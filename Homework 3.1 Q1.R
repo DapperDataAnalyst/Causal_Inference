@@ -8,7 +8,7 @@ advertising <- read.table(file = 'https://raw.githubusercontent.com/DapperDataAn
 fit <- lm(sales_millions ~ minutes, data = advertising)
 summary(fit)
 
-fit_glm <- model <- stan_glm(sales_millions ~ minutes, data = advertising, refresh=0)
+fit_glm <- stan_glm(sales_millions ~ minutes, data = advertising, refresh=0)
 summary(fit_glm)
 sims <- as.matrix(fit_glm)
 min(sims[,2])
