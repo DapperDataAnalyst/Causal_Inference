@@ -25,10 +25,26 @@ newF2 <- data.frame(Temperature=65)
 pred_probF2 <- predict(model1, type="response", newdata=newF2)
 pred_probF2 - pred_probF1
 
-linpredF1 <- posterior_linpred(model1, newdata=newF1)
-linpredF2 <- posterior_linpred(model1, newdata=newF2)
-mean(linpredF2 - linpredF1) # Not very confident that this is the correct method
+# linpredF1 <- posterior_linpred(model1, newdata=newF1)
+# linpredF2 <- posterior_linpred(model1, newdata=newF2)
+# mean(linpredF2 - linpredF1) # This is what I originally answered and it is wrong
+poster_diff <- posterior_predict(model1, newdata = newF2) - posterior_predict(model1, newdata = newF1)
+mean(poster_diff)
 
 # Part g)
-sd(linpredF2 - linpredF1)
+# sd(linpredF2 - linpredF1) # This is what I originally answered and it is wrong
+sd(poster_diff)
 
+
+series <- data.frame(Temperature=1:100)
+points <- predict(model1, type="response", newdata = series)
+# points <- posterior_predict(model1, newdata = series)
+# points <- posterior_epred(model1, newdata = series)
+points <- posterior_linpred(model1, newdata = series)
+
+
+data <- data.frame(x = series, y = points)
+
+ggplot(data, aes(Temperature, y.1)) +
+  geom_line() +
+  labs(x = "X-Axis Label", y = "Y-Axis Label", title = "Line Plot of Your Function")
