@@ -3,7 +3,8 @@ library("rstanarm")
 library("foreign")
 
 #' #### Load data
-nes <- read.table("nes.txt", header=TRUE)
+# nes <- read.table("nes.txt", header=TRUE)
+nes <- read.table(file = 'https://raw.githubusercontent.com/DapperDataAnalyst/Causal_Inference/main/nes.txt', header = T, sep = "", fileEncoding = "UTF-8")
 head(nes)
 
 #' Use first only data from 1992 and remove missing data
