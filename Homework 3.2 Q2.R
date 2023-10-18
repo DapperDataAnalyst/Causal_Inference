@@ -1,3 +1,4 @@
+library(rstanarm)
 age_data <- read.table(file = 'https://raw.githubusercontent.com/DapperDataAnalyst/Causal_Inference/main/age_data.txt', header = T, sep = "\t", fileEncoding = "UTF-8")
 
 # Part a)
