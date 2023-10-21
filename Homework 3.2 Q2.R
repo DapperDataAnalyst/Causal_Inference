@@ -7,14 +7,19 @@ model1 <- stan_glm(Y ~ Z+age, family=binomial(link="logit"), data=age_data,
 summary(model1)
 
 # Part b)
-data_t <- data.frame(age = c(age_data$age[age_data$Z==1]), Z = c(age_data$Z[age_data$Z==1]))
-data_c <- data.frame(age = c(age_data$age[age_data$Z==0]), Z = c(age_data$Z[age_data$Z==0]))
+# data_t <- data.frame(age = c(age_data$age[age_data$Z==1]), Z = c(age_data$Z[age_data$Z==1]))
+# data_c <- data.frame(age = c(age_data$age[age_data$Z==0]), Z = c(age_data$Z[age_data$Z==0]))
+
+data_t <- age_data
+data_t$Z <- 1
+data_c <- age_data
+data_c$Z <- 0
 
 pt <- predict(model1, newdata = data_t, type = "response")
 pc <- predict(model1, newdata = data_c, type = "response")
 
-num <- ((1/length(pt)) * sum(pt)) / ((1/length(pt) * sum(1-pt)))
-denom <- ((1/length(pc)) * sum(pc)) / ((1/length(pc) * sum(1-pc)))
+num <- mean(pt) / mean(1-pt)
+denom <- mean(pc) / mean(1-pc)
 causeodds <- num / denom
 causeodds
 
