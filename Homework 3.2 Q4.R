@@ -30,7 +30,7 @@ for (i in 1:1000){
   model_iter <- lm(Y ~ X1+X2+X3+X4+Z_new)
   treat_effects[i] <- model_iter$coefficients['Z_new']
 }
-mean(treat_effects) # These seem to be incorrect
+mean(treat_effects)
 
 # Part c)
 sd(treat_effects)

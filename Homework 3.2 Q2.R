@@ -5,7 +5,7 @@ age_data <- read.table(file = 'https://raw.githubusercontent.com/DapperDataAnaly
 model1 <- stan_glm(Y ~ Z+age, family=binomial(link="logit"), data=age_data,
                    refresh=0)
 summary(model1)
-
+exp(2.8)
 # Part b)
 # data_t <- data.frame(age = c(age_data$age[age_data$Z==1]), Z = c(age_data$Z[age_data$Z==1]))
 # data_c <- data.frame(age = c(age_data$age[age_data$Z==0]), Z = c(age_data$Z[age_data$Z==0]))
