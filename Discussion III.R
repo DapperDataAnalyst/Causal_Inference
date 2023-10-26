@@ -20,10 +20,10 @@ library(ggplot2)
 
 # Create a sample dataset
 data_multi <- data.frame(
-  Category = c('Level 1','Level 2', 'Level 3'),
-  PointEstimate = c(coef(model3)[2],coef(model3)[3],coef(model3)[4]),
-  LowerCI = c(coef(model3)[2]+2*se(model3)[2],coef(model3)[3]+2*se(model3)[3],coef(model3)[4]+2*se(model3)[4]),
-  UpperCI = c(coef(model3)[2]-2*se(model3)[2],coef(model3)[3]-2*se(model3)[3],coef(model3)[4]-2*se(model3)[4])
+  Category = c('Level 0','Level 1','Level 2', 'Level 3'),
+  PointEstimate = c(0,coef(model3)[2],coef(model3)[3],coef(model3)[4]),
+  UpperCI = c(0+2*se(model3)[1],coef(model3)[2]+2*se(model3)[2],coef(model3)[3]+2*se(model3)[3],coef(model3)[4]+2*se(model3)[4]),
+  LowerCI = c(0-2*se(model3)[1],coef(model3)[2]-2*se(model3)[2],coef(model3)[3]-2*se(model3)[3],coef(model3)[4]-2*se(model3)[4])
 )
 
 # Create the multiplot
