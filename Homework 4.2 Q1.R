@@ -3,7 +3,7 @@ data <- read.csv(file = 'https://raw.githubusercontent.com/DapperDataAnalyst/Cau
 # Part 1)
 treat <- data$treat
 re78 <- data$re78
-effect <- mean(earn78[treat==1]) - mean(earn78[treat==0])
+effect <- mean(re78[treat==1]) - mean(re78[treat==0])
 effect
 
 # Part 2)
@@ -29,3 +29,4 @@ ggplot(data, aes(x = re74, fill = factor(treat))) +
        y = "Frequency") +
   scale_fill_manual(values = c("0" = "blue", "1" = "red")) +
   theme_minimal()
+
