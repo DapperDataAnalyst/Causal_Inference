@@ -11,17 +11,17 @@ X5 <- prop_data$X5
 true_e <- invlogit(20*X1 - 5*X3*X4)
 
 # Part a)
-model <- stan_glm(true_e ~ X1+X3:X4, family=binomial(link="logit"), refresh=0)
+model <- stan_glm(Z ~ X1+X3:X4, family=binomial(link="logit"), refresh=0)
 summary(model)
 newdat <- data.frame(X1,X3,X4)
-diffs <- true_e - predict(model,newdata = newdat)
+diffs <- true_e - predict(model,newdata = newdat, type = 'response')
 sd(diffs)
 
 # Part b)
-model_undspec <- stan_glm(true_e ~ X3:X4, family=binomial(link="logit"), refresh=0)
+model_undspec <- stan_glm(Z ~ X3:X4, family=binomial(link="logit"), refresh=0)
 summary(model_undspec)
 undspec_dat <- data.frame(X3,X4)
-undspec_diffs <- true_e - predict(model_undspec,newdata = undspec_dat)
+undspec_diffs <- true_e - predict(model_undspec,newdata = undspec_dat, type = 'response')
 sd(undspec_diffs)
 
 # Part c)
@@ -32,14 +32,14 @@ hist(undspec_diffs)
 #' covariates are independent
 
 # Part e)
-model_overspec <- stan_glm(true_e ~ X1+X2+X3+X4+X5+X3:X1+X3:X2+X3:X4+X3:X5, family=binomial(link="logit"), refresh=0)
+model_overspec <- stan_glm(Z ~ X1+X2+X3+X4+X5+X3:X1+X3:X2+X3:X4+X3:X5, family=binomial(link="logit"), refresh=0)
 summary(model_undspec)
 overspec_dat <- data.frame(X1,
                            X2,
                            X3,
                            X4,
                            X5)
-overspec_diffs <- true_e - predict(model_overspec,newdata = overspec_dat)
+overspec_diffs <- true_e - predict(model_overspec,newdata = overspec_dat, type = 'response')
 sd(overspec_diffs)
 
 # Part f)
