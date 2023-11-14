@@ -3,7 +3,7 @@ library(arm)
 library(rstanarm)
 
 
-data <- read.csv(file = 'https://raw.githubusercontent.com/DapperDataAnalyst/Causal_Inference/main/Lalonde.csv', header = T)
+data <- read.csv(file = 'https://raw.githubusercontent.com/DapperDataAnalyst/Causal_Inference/main/lalonde_5_1.csv', header = T)
 
 # Part c)
 ## For age
@@ -89,8 +89,8 @@ bal <- balance(rawdat = data[c('age', 'educ', 'black', 'married', 'nodegree', 'r
                treat = data$treat,
                matched = matches$cnts,
                estimand = "ATT")
-plot(bal, longcovnames=c('age', 'educ', 'black', 'married', 'nodegree', 're74', 're75', 'hisp'), which.cov="cont")
-plot(bal, longcovnames=c('age', 'educ', 'black', 'married', 'nodegree', 're74', 're75', 'hisp'), which.cov="binary")
+plot(bal, longcovnames=c('age', 'educ', 're74', 're75'), which.cov="cont")
+plot(bal, longcovnames=c('black', 'married', 'nodegree', 'hisp'), which.cov="binary")
 
 
 
