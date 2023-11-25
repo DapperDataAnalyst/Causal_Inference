@@ -1,0 +1,188 @@
+---
+title: "Homework 5.2"
+output: html_document
+date: "2023-11-28"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(ggplot2)
+library(arm)
+library(rstanarm)
+library(BayesTree)
+```
+## Question 2:
+```{r}
+n <- c(90,50,30,50)
+x <- c(0,1,0,1)
+z <- c(0,0,1,1)
+y0 <- c(110,90,110,90)
+y1 <- c(120,90,120,90)
+y_obs <- c(110,90,120,90)
+p <- c(.25,.5,.25,.5)
+n_re <- rep(50,4)
+```
+
+### Part a)
+```{r}
+ratio <- 50/(50+50)
+answer <- 1/ratio
+answer
+```
+
+
+### Part b)
+```{r}
+# Before reweight:
+before <- abs((90*0 + 50*1)/(90+50) - (30*0 + 50*1)/(30+50))
+before
+```
+```{r}
+# After reweight:
+after <- abs((50*0 + 50*1)/(50+50) - (50*0 + 50*1)/(50+50))
+after
+```
+### Part c)
+```{r}
+(30*(120-110) + 50*(90-90))/(30+50)
+```
+### Part d)
+```{r}
+w_x0 <- 1/0.25
+w_x1 <- 1/0.5
+
+(w_x0*(120-110) + w_x1*(90-90))/(w_x0+w_x1)
+```
+### Part e)
+```{r}
+# Same numbers as Part d?
+```
+
+## Question 3:
+### Part a)
+```{r}
+bart_data <- read.csv(file = 'https://raw.githubusercontent.com/DapperDataAnalyst/Causal_Inference/main/bart_sim.csv', header = T)
+
+X1 <- bart_data$X1
+X2 <- bart_data$X2
+Z <- bart_data$Z
+Y <- bart_data$Y
+
+X1t <- X1[Z==1]
+X1c <- X1[Z==0]
+X2t <- X2[Z==1]
+X2c <- X2[Z==0]
+
+SMD1 <- abs(mean(X1t) - mean(X1c)) / sd(X1t)
+SMD2 <- abs(mean(X2t) - mean(X2c)) / sd(X2t)
+
+SMD1
+SMD2
+
+```
+### Part b)
+```{r}
+log_mod <- stan_glm(Z ~ X1+X2+X1:X2, family=binomial(link="logit"), refresh=0, data=bart_data)
+
+newdat <- data.frame(X1,X2)
+bart_data$prop_scores <- colMeans(posterior_predict(log_mod,newdata = newdat, type = 'response'))
+
+# Find thresholds in control units' prop scores
+u_thresh <- max(bart_data$prop_scores[bart_data$Z==0])
+l_thresh <- min(bart_data$prop_scores[bart_data$Z==0])
+
+# Trim data
+trimmed_dat <- bart_data[(bart_data$Z==0) | (bart_data$Z==1 & bart_data$prop_scores<u_thresh & bart_data$prop_scores>l_thresh),]
+
+X1t.trim <- trimmed_dat$X1[trimmed_dat$Z==1]
+X1c.trim <- trimmed_dat$X1[trimmed_dat$Z==0]
+X2t.trim <- trimmed_dat$X2[trimmed_dat$Z==1]
+X2c.trim <- trimmed_dat$X2[trimmed_dat$Z==0]
+
+SMD1.trim <- abs(mean(X1t.trim) - mean(X1c.trim)) / sd(X1t.trim)
+SMD2.trim <- abs(mean(X2t.trim) - mean(X2c.trim)) / sd(X2t.trim)
+SMD2.trim
+
+```
+### Part c)
+```{r}
+xt <- as.matrix(trimmed_dat[,(names(trimmed_dat) %in% c('X1','X2','Z'))])
+y <- as.numeric(trimmed_dat$Y)
+xp <- as.matrix(trimmed_dat[trimmed_dat$Z==1,(names(trimmed_dat) %in% c('X1','X2','Z'))]) 
+xp[,3] <- 0
+bart_mod <- bart(x.train=xt,   y.train=y,  x.test=xp)
+
+diffs <- bart_mod$yhat.train[,trimmed_dat$Z==1]-bart_mod$yhat.test
+
+mndiffs=apply(diffs,1,mean)
+ATT_bart = mean(mndiffs)
+ATT_bart  # I feel this is likely incorrect
+
+
+```
+### Part d)
+```{r}
+sd(mndiffs)
+```
+### Part e)
+```{r}
+ite_means<- apply(diffs, 2, mean)
+ite_sds<- apply(diffs, 2, sd)
+ite_ql = apply(diffs, 2, quantile, .025)
+ite_qu = apply(diffs, 2, quantile, .975)
+
+for (cov in c('X1','X2')){
+  covplot = trimmed_dat[, cov]
+  plot(covplot[trimmed_dat$Z==1], ite_means, pch=16, cex=0.75, col="red", ylim = c(-1,2), 
+       main = paste("ITEs as a function of:", cov), xlab = cov, ylab = "ITE")
+  arrows(covplot[trimmed_dat$Z==1], ite_ql, covplot[trimmed_dat$Z==1], ite_qu, col = rgb(0.5,0,0, alpha=0.5), angle=90, length=0.01, lwd=0.5)
+}
+```
+### Part f)
+```{r}
+library(vioplot)
+
+# Step 1: Split trimmed treated observations into three subgroups based on tertiles of X2
+trimmed_dat$X2_tertile <- cut(trimmed_dat$X2, breaks = quantile(trimmed_dat$X2, c(0, 1/3, 2/3, 1)), labels = c("low", "medium", "high"), include.lowest = TRUE)
+
+# Step 2: Initialize variables
+num_iterations <- 10
+diffs_low_medium <- numeric(num_iterations)
+diffs_high_medium <- numeric(num_iterations)
+
+# Step 3-4: For each MCMC iteration, compute subgroup ATTs and differences
+for (iter in 1:num_iterations) {
+  # Fit BART model for each subgroup
+  bart_mod <- bart(x.train = xt, y.train = y, x.test = xp)
+  
+  # Compute subgroup ATTs
+  att_low <- mean(bart_mod$yhat.train[trimmed_dat$Z == 1 & trimmed_dat$X2_tertile == "low", iter])
+  att_medium <- mean(bart_mod$yhat.train[trimmed_dat$Z == 1 & trimmed_dat$X2_tertile == "medium", iter])
+  att_high <- mean(bart_mod$yhat.train[trimmed_dat$Z == 1 & trimmed_dat$X2_tertile == "high", iter])
+  
+  # Compute differences
+  diffs_low_medium[iter] <- att_low - att_medium
+  diffs_high_medium[iter] <- att_high - att_medium
+}
+
+# Step 5: Create a plot (e.g., violin plot with boxplot overlaid)
+par(mfrow = c(1, 2))
+vioplot(diffs_low_medium, names = "Low - Medium", main = "Difference Low - Medium")
+boxplot(diffs_low_medium, main = "Difference Low - Medium", add = TRUE, col = "blue")
+
+vioplot(diffs_high_medium, names = "High - Medium", main = "Difference High - Medium")
+boxplot(diffs_high_medium, main = "Difference High - Medium", add = TRUE, col = "red")
+
+```
+
+### Part g)
+```{r}
+trimmed_dat$y_pred <- trimmed_dat$Z + 0.5*trimmed_dat$X1 + 2*trimmed_dat$X2 + trimmed_dat$X1*trimmed_dat$X2 + trimmed_dat$Z*trimmed_dat$X1
+
+y_glm <- stan_glm(Y ~ Z+X1+X2+X1:X2+Z:X1, refresh=0, data=trimmed_dat)
+
+ATT_glm <- mean(y_glm$coefficients['Z']*trimmed_dat$Z + y_glm$coefficients['Z:X1']*trimmed_dat$Z*trimmed_dat$X1)
+
+abs(ATT_glm - ATT_bart)
+
+```
