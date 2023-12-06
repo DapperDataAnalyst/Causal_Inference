@@ -1,0 +1,165 @@
+---
+title: "Homework 3.2"
+output: html_document
+date: "2023-10-24"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Question 2:
+```{r}
+library(rstanarm)
+age_data <- read.table(file = 'https://raw.githubusercontent.com/DapperDataAnalyst/Causal_Inference/main/age_data.txt', header = T, sep = "\t", fileEncoding = "UTF-8")
+
+# Part a)
+model1 <- stan_glm(Y ~ Z+age, family=binomial(link="logit"), data=age_data,
+                   refresh=0)
+summary(model1)
+exp(model1$coefficients[2])
+# Part b)
+# data_t <- data.frame(age = c(age_data$age[age_data$Z==1]), Z = c(age_data$Z[age_data$Z==1]))
+# data_c <- data.frame(age = c(age_data$age[age_data$Z==0]), Z = c(age_data$Z[age_data$Z==0]))
+
+data_t <- age_data
+data_t$Z <- 1
+data_c <- age_data
+data_c$Z <- 0
+
+pt <- predict(model1, newdata = data_t, type = "response")
+pc <- predict(model1, newdata = data_c, type = "response")
+
+num <- mean(pt) / mean(1-pt)
+denom <- mean(pc) / mean(1-pc)
+causeodds <- num / denom
+causeodds
+
+# Part c)
+Y1 <- posterior_predict(model1, newdata = data_t)
+Y1 <- colMeans(Y1)
+Y0 <- posterior_predict(model1, newdata = data_c)
+Y0 <- colMeans(Y0)
+mean(Y1 - Y0)
+
+# Part d)
+library(ggplot2)
+age_data$mod1_pred <- model1$fitted.values
+p1 <- ggplot(age_data, aes(x = age, y = jitter(Y))) +
+  geom_point(alpha = 0.5, aes(color = factor(Z))) +
+  
+  # Add regression lines for treated and control
+  geom_line(aes(y = mod1_pred,
+                group = factor(Z),
+                color = factor(Z)),
+            size = 2) +
+  
+  # Customize the plot
+  labs(x = "Age", y = "Outcome", color = "Group") +
+  scale_color_manual(values = c("blue", "red")) +
+  theme_minimal() 
+print(p1)
+
+
+# Part e)
+model2 <- stan_glm(Y ~ Z+age+Z:age, family = binomial(link = "logit"), data = age_data, refresh = 0)
+age_data$mod2_pred <- model2$fitted.values
+
+p2 <- ggplot(age_data, aes(x = age, y = jitter(Y))) +
+  geom_point(alpha = 0.5, aes(color = factor(Z))) +
+  
+  # Add regression lines for treated and control
+  geom_line(aes(y = mod2_pred,
+                group = factor(Z),
+                color = factor(Z)),
+            size = 2) +
+  
+  # Customize the plot
+  labs(x = "Age", y = "Outcome", color = "Group") +
+  scale_color_manual(values = c("blue", "red")) +
+  theme_minimal() 
+print(p2)
+```
+## Question 4:
+```{r}
+library(rstanarm)
+covariates <- read.table(file = 'https://raw.githubusercontent.com/DapperDataAnalyst/Causal_Inference/main/covariates.txt', header = T, sep = "\t", fileEncoding = "UTF-8")
+errors <- read.table(file = 'https://raw.githubusercontent.com/DapperDataAnalyst/Causal_Inference/main/errors.txt', header = T, sep = "\t", fileEncoding = "UTF-8")
+X1 <- covariates$X1
+X2 <- covariates$X2
+X3 <- covariates$X3
+X4 <- covariates$X4
+Z <- covariates$Z
+err <- errors$x
+Y <- -250*X1 + 2*X2^2 + 0.4*X3^2 - 75*log(X4) - 100*Z + err
+
+data <- data.frame(cbind(X1,X2,X3,X4,Z,err,Y))
+
+# Part a)
+# model1 <- stan_glm(Y ~ X1+X2+X3+X4+Z, data=data, refresh=0)
+model1 <- lm(Y ~ X1+X2+X3+X4+Z, data=data)
+# truth <- mean(Y[Z==1]) - mean(Y[Z==0])
+truth <- 100
+summary(model1)
+diff <- abs(model1$coefficients['Z']) - truth
+diff
+
+# Part b)
+n <- length(Z)
+treat_effects <- rep(NA, 1000)
+for (i in 1:1000){
+  Z_new <- sample(0:1, nrow(covariates), replace = TRUE)
+  Y <- -250*X1 + 2*X2^2 + 0.4*X3^2 - 75*log(X4) - 100*Z_new + err
+  # model_iter <- stan_glm(Y ~ X1+X2+X3+X4+Z, data=data, refresh=0)
+  model_iter <- lm(Y ~ X1+X2+X3+X4+Z_new)
+  treat_effects[i] <- model_iter$coefficients['Z_new']
+}
+mean(treat_effects)
+
+# Part c)
+sd(treat_effects)
+
+# Part d)
+treat_eff_mod <- rep(NA, 1000)
+for (i in 1:1000){
+  Z_new <- sample(0:1, nrow(covariates), replace = TRUE)
+  Y <- -250*X1 + 2*X2^2 + 0.4*X3^2 - 75*log(X4) - 100*Z_new + err
+  model_iter <- lm(Y ~ X1+I(X2^2)+I(X3^2)+I(log(X4))+Z_new)
+  treat_eff_mod[i] <- model_iter$coefficients['Z_new']
+}
+mean(treat_eff_mod)
+sd(treat_eff_mod)
+```
+
+## Question 5:
+```{r}
+library(rstanarm)
+
+# Part a)
+22.5 - 16
+
+# Part b)
+4^2 * 2^5
+
+# Part c)
+n_iters <- 200
+Y0_obs <- c(16, 20, 20, 10, 14)
+Y1_obs <- c(14, 31)
+
+
+Y0 <- c(NA, 16, 20, 20, 10, 14, NA)
+Y1 <- c(14, rep(NA, 5), 31)
+ATEs <- rep(NA, n_iters)
+
+for (i in 1:n_iters){
+  Y0[1] <- sample(Y0_obs, 1)
+  Y0[7] <- sample(Y0_obs, 1)
+  for (j in 2:6){
+    Y1[j] <- sample(Y1_obs, 1)
+  }
+  ATEs[i] <- mean(Y1) - mean(Y0)
+}
+
+sd(ATEs)
+```
+
