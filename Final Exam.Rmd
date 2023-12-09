@@ -1,0 +1,197 @@
+---
+title: "Final Exam"
+output: html_document
+date: "2023-12-09"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Question 8
+```{r}
+data <- data.frame(
+  Full = c(400,1,3),
+  Brief = c(13,384,1),
+  Warning = c(1,1,396)
+)
+
+outcomes <- data.frame(
+  c(296,146),
+  c(301,157),
+  c(261,151)
+)
+
+# Group arrests
+data.coded <- rbind(data[1,]+data[2,],data[3,])
+data.coded <- cbind(data.coded[,1]+data.coded[,2],data.coded[,3])
+
+# Label rows and cols
+colnames(data.coded) <- c('Arrest','Warning')
+rownames(data.coded) <- c('Arrest','Warning')
+
+# Group arrests
+outcomes.coded <- cbind(outcomes[,1]+outcomes[,2],outcomes[,3])
+
+# Label rows and cols
+colnames(outcomes.coded) <- c('Arrest','Warning')
+rownames(outcomes.coded) <- c('Report','Arrest')
+
+# Find E[T|Z=1] - E[T|Z=0]
+data.coded[1,1]/sum(data.coded[,1]) - data.coded[1,2]/sum(data.coded[,2])
+
+```
+## Question 9
+```{r}
+(outcomes.coded[1,1] - outcomes.coded[1,2]) / (outcomes.coded[1,1] + outcomes.coded[1,2])
+```
+
+## Question 10
+```{r}
+ITT.arrest <- (outcomes.coded[2,1] - outcomes.coded[2,2]) / (outcomes.coded[2,1] + outcomes.coded[2,2])
+pr_c <- data.coded[1,1]+data.coded[2,2] / sum(data.coded)
+CACE <- ITT.arrest/pr_c
+CACE
+```
+
+## Question 12
+```{r}
+library(rstanarm)
+load("Scrubbers.rdata")
+
+# Make scrubbed indicator binary
+dat$ScrubbedFacility[dat$ScrubbedFacility == 'TRUE'] <- 1
+
+model.scrub <- stan_glm(ScrubbedFacility ~
+                    TotPop
+                  +PctUrban
+                  +PctWhite
+                  +PctBlack
+                  +PctHisp
+                  +PctHighSchool
+                  +MedianHHInc
+                  +PctPoor
+                  +PctOccupied
+                  +meanSulfur
+                  +totOpTime
+                  +totHeatInput
+                  +Phase2
+                  +Region, 
+                family=binomial(link="logit"), refresh=0, data=dat)
+ps_scores <- colMeans(posterior_predict(model.scrub, type = "response"))
+mean(ps_scores[dat$ScrubbedFacility == 1])
+```
+
+## Question 13
+```{r}
+sd(ps_scores[dat$ScrubbedFacility == 1])
+```
+
+## Question 14
+```{r}
+library(MatchIt)
+
+# Create a matching object
+match_obj <- matchit(ScrubbedFacility ~ propscore, data = dat, method = "nearest", ratio = 1)
+
+# Perform the matching
+matched_dat <- match.data(match_obj)
+
+variables <- c('TotPop','PctUrban','PctWhite','PctBlack','PctHisp','PctHighSchool','MedianHHInc','PctPoor','PctOccupied','meanSulfur','totOpTime','totHeatInput','Phase2')
+
+for (var in variables){
+  print(var)
+  
+  # Extract the variable using [[ instead of $
+  variable_values_1 <- matched_dat[[var]][matched_dat$ScrubbedFacility == 1]
+  variable_values_0 <- matched_dat[[var]][matched_dat$ScrubbedFacility == 0]
+  
+  # Calculate the standardized mean difference
+  smd <- abs((mean(variable_values_1) - mean(variable_values_0)) / sd(variable_values_1))
+  
+  print(smd)
+}
+
+```
+
+## Question 15
+```{r}
+linmod <- stan_glm(PM ~
+                  ScrubbedFacility
+                  +TotPop
+                  +PctUrban
+                  +PctWhite
+                  +PctBlack
+                  +PctHisp
+                  +PctHighSchool
+                  +MedianHHInc
+                  +PctPoor
+                  +PctOccupied
+                  +meanSulfur
+                  +totOpTime
+                  +totHeatInput
+                  +Phase2
+                  +Region, 
+                 refresh=0, data=matched_dat)
+summary(linmod)
+```
+
+## Question 17
+```{r}
+unique(matched_dat$Region)
+# Southwest was included in the matched data^^^
+```
+
+## Question 18
+```{r}
+library(BayesTree)
+
+treated_dat <- dat[dat$ScrubbedFacility==1,]
+
+
+xt.t <- treated_dat[,!(names(treated_dat) %in% c('Region','propscore','ZIP','PM'))]
+y.t <- as.numeric(treated_dat$PM)
+
+bartmod.t <- bart(x.train = xt.t, y.train = y.t)
+
+mean(bartmod.t$sigma)
+
+```
+
+## Question 18
+```{r}
+untreated_dat <- dat[dat$ScrubbedFacility==0,]
+
+xt.c <- untreated_dat[,!(names(untreated_dat) %in% c('Region','propscore','ZIP','PM'))]
+y.c <- as.numeric(untreated_dat$PM)
+
+bartmod.c <- bart(x.train = xt.c, y.train = y.c)
+
+mean(bartmod.c$sigma)
+
+```
+
+## Question 20
+```{r}
+bartmod.t_test.c <- bart(x.train = xt.t, y.train = y.t, x.test = xt.c)
+bartmod.c_test.t <- bart(x.train = xt.c, y.train = y.c, x.test = xt.t)
+
+# Real treats with modeled controls
+real.t_mod.c <- treated_dat$PM - bartmod.c_test.t$yhat.test.mean
+# Real controls with modeled treats
+real.c_mod.t <- bartmod.t_test.c$yhat.test.mean - untreated_dat$PM
+
+combined_effects <- c(real.t_mod.c, real.c_mod.t)
+mean(combined_effects)
+```
+
+## Question 21
+```{r}
+mean(c(bartmod.c_test.t$sigma,bartmod.t_test.c$sigma))  # Not too sure this is the right method
+```
+
+
+
+
+
+
