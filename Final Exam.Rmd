@@ -43,12 +43,14 @@ data.coded[1,1]/sum(data.coded[,1]) - data.coded[1,2]/sum(data.coded[,2])
 ```
 ## Question 9
 ```{r}
-(outcomes.coded[1,1] - outcomes.coded[1,2]) / (outcomes.coded[1,1] + outcomes.coded[1,2])
+#(outcomes.coded[1,1] - outcomes.coded[1,2]) / (outcomes.coded[1,1] + outcomes.coded[1,2])
+
+outcomes.coded[1,1]/sum(data.coded[,1]) - outcomes.coded[1,2]/sum(data.coded[,2])
 ```
 
 ## Question 10
 ```{r}
-ITT.arrest <- (outcomes.coded[2,1] - outcomes.coded[2,2]) / (outcomes.coded[2,1] + outcomes.coded[2,2])
+ITT.arrest <- outcomes.coded[2,1]/sum(data.coded[,1]) - outcomes.coded[2,2]/sum(data.coded[,2])
 pr_c <- data.coded[1,1]+data.coded[2,2] / sum(data.coded)
 CACE <- ITT.arrest/pr_c
 CACE
@@ -134,6 +136,7 @@ linmod <- stan_glm(PM ~
                   +Region, 
                  refresh=0, data=matched_dat)
 summary(linmod)
+linmod["coefficients"]
 ```
 
 ## Question 17
@@ -158,7 +161,7 @@ mean(bartmod.t$sigma)
 
 ```
 
-## Question 18
+## Question 19
 ```{r}
 untreated_dat <- dat[dat$ScrubbedFacility==0,]
 
